@@ -1,0 +1,11 @@
+
+int main () {
+   ifOpt (5+1)
+}
+
+int ifOpt (int n) {
+ if (n)
+    then n
+    else 0
+
+}
