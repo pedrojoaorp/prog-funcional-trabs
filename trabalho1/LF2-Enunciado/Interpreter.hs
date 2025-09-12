@@ -1,7 +1,7 @@
 module Interpreter where
 
 import AbsLF
-import Tests
+--import Tests --Veio do Interpreter da parte 1
 import Prelude hiding (lookup)
             
 {- TODO: Estude a definição do tipo Function no arquivo AbsLF.hs e complete as definicoes 

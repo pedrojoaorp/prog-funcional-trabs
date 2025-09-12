@@ -8,10 +8,7 @@ data R a = OK a | Erro String
          deriving (Eq, Ord, Show, Read)
 
 isError e = case e of
-    OK _ -> False
-    Erro _ -> True 
-
-
+    OK _ -> Falsemsg
 type TContext = [(Ident,Type)]
 
 {-
@@ -83,13 +80,26 @@ tinf tc x  =  case x of
    "exp" deve ser inteiro (Tint), e os tipos de "expT" e "expE" devem ser iguais.
    @dica: estude a estrutura da checagem de tipo do "SIf" na LI2Tipada. 
 -}
--- Primeiro, verificamos se r é do tipo Int com a função tke; depois, usamos a função tinf recursivamente para avaliar o tipo de expT, e usamos pattern matching para comparar com o tipo de expE, retornando OK e o tipo das expressões caso sejam os mesmos, ou um erro se forem diferentes.
+-- Primeiro, verificamos se r é do tipo Int com a função tke; depois, usamos a função tinf recursivamente para avaliar o tipo de expT e depois o tipo de expE, e usamos pattern matching para comparar os dois tipos, retornando OK e o tipo das expressões caso sejam os mesmos, ou um erro se forem diferentes.
     eIf@(EIf exp expT expE) -> let r = tke tc exp Tint in 
                                   case r of 
-                                      OK _ -> let r2 = tinf tc expT
-                                                 case r2 of
-                                                     tinf tc expE -> OK r2
-                                                     _            -> Erro msg
+                                      OK _ -> let r2 = tinf tc expT in
+                                                case r2 of
+                                                  OK _ -> let r3 = tinf tc expE in
+                                                            case r3 of
+                                                              r2 -> r3
+                                                              OK _ -> Erro "Expressões de Then e Else não têm o mesmo tipo"
+                                                              Erro msg -> Erro msg
+                                                  Erro msg -> Erro msg
+                                      {-OK _ -> let r2 = tinf tc expT in
+                                                case r2 of
+                                                  OK _ -> let r3 = tinf tc expE in
+                                                            case r3 of
+                                                              OK _ -> if (r2 == r3)
+                                                                        then r3
+                                                                        else Erro msg
+                                                              Erro msg -> Erro msg
+                                                  Erro msg -> Erro msg-}
                                       Erro msg -> Erro msg
 {- TODO: sobre "ECall" abaixo, a lógica permanece a mesma em relação a LI2Tipada ? Por que? -}  
 -- A lógica entre ECall da LF2 e da LI2 é bem parecida, as diferenças que surgem se devem apenas à mudança da linguagem em relação a parar de usar comandos e manter apenas expressões, o que causa alguns comportamentos diferentes nas funções de lookup.
