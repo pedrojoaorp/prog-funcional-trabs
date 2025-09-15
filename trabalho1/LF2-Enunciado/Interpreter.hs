@@ -3,7 +3,7 @@ module Interpreter where
 import AbsLF
 --import Tests --Veio do Interpreter da parte 1
 import Prelude hiding (lookup)
-            
+
 {- TODO: Estude a definição do tipo Function no arquivo AbsLF.hs e complete as definicoes 
     de "getParams" e "getExp" abaixo. Note "getName" já é fornecida.         
 -}
@@ -13,10 +13,13 @@ getType (Fun tp _ _ _) = tp
 getName :: Function -> Ident
 getName (Fun _ name _ _) = name
 
-getParams :: Function -> [Ident]
+getParams :: Function -> [Decl]
 getParams (Fun _ _ [params] _) = [params]
 
-getExp :: Function -> Exp 
+getParamIdents :: Function -> [Ident]
+getParamIdents (Fun _ _ [Dec _ id] _) = [id]
+
+getExp :: Function -> Exp
 getExp (Fun _ _ _ exp) = exp
 
 -- O tipo Function tem agora mais um parâmetro no começo, o Type. Basta adicionar mais um espaço no pattern-matching para encaixar no padrão; adicionei também uma função getType similar às outras.
@@ -34,18 +37,18 @@ getExp (Fun _ _ _ exp) = exp
 executeP :: Program -> Valor
 
 executeP (Prog fs) =  eval (updatecF [] fs) (expMain fs)
-    where expMain (f:xs) 
+    where expMain (f:xs)
               | (getName f == (Ident "main")) =  getExp f
-              | otherwise = expMain xs                                            
-          
-   
+              | otherwise = expMain xs
+
+
 eval :: RContext -> Exp -> Valor
 eval context x = case x of
     ECon exp0 exp  -> ValorStr ( s (eval context exp0) ++  s (eval context exp) )
     EAdd exp0 exp  -> ValorInt ( i (eval context exp0)  +  i (eval context exp))
-    ESub exp0 exp  -> ValorInt ( i (eval context exp0)  -  i (eval context exp)) 
+    ESub exp0 exp  -> ValorInt ( i (eval context exp0)  -  i (eval context exp))
     EMul exp0 exp  -> ValorInt ( i (eval context exp0)  *  i (eval context exp))
-    EDiv exp0 exp  -> ValorInt ( i (eval context exp0) `div` i (eval context exp)) 
+    EDiv exp0 exp  -> ValorInt ( i (eval context exp0) `div` i (eval context exp))
     EOr  exp0 exp  -> ValorBool ( b (eval context exp0)  || b (eval context exp))
     EAnd exp0 exp  -> ValorBool ( b (eval context exp0)  && b (eval context exp))
     ENot exp       -> ValorBool ( not (b (eval context exp)))
@@ -59,7 +62,7 @@ eval context x = case x of
    pretendido é o seguinte: compare o valor resultante da avaliação de "exp" com 0.
    se o valor for diferente de 0, retorna-se o resultado da avaliação da expressão expT; 
    caso contrário, retorna-se o resultado da avaliação da expressão expE. 
-   @dica: estude a semântica do "SIf" na LI2 e saiba explicar a diferença -}    
+   @dica: estude a semântica do "SIf" na LI2 e saiba explicar a diferença -}
 --Diferença entre os Ifs: na LI2, ele avaliava a expressão de condição e, de acordo com o resultado, executava um comando ou outro. Na LF1, como não existem mais comandos, apenas expressões, o If é definido similarmente, mas agora avalia expressões de acordo com a condição em vez de executar comandos.
     EIf exp expT expE -> if ( i (eval context exp) /= 0)
                           then eval context expT
@@ -68,14 +71,14 @@ eval context x = case x of
     aplicadas ao argumento "funDef"  @dica: não altere o resto, mas saiba explicar o funcionamento -}
     ECall id lexp   -> eval (paramBindings ++ contextFunctions) (getExp funDef) -- 1o undefined é a expressão da função definida como funDef na lnha abaixo
                           where (ValorFun funDef) = lookup context id
-                                parameters = getParams funDef -- 2o undefined é os parâmetros da funDef
+                                parameters = getParamIdents funDef -- 2o undefined é os identificadores dos parâmetros da funDef
                                 paramBindings = zip parameters (map (eval context) lexp)
-                                contextFunctions = filter (\(i,v) -> case v of 
-                                                                         ValorFun _ -> True 
+                                contextFunctions = filter (\(i,v) -> case v of
+                                                                         ValorFun _ -> True
                                                                          _ -> False
-                                                           ) 
+                                                           )
                                                           context
-                                                          
+
 
 
 -- *** @dica: nao altere o todo o codigo abaixo a partir daqui
@@ -88,16 +91,16 @@ s (ValorStr vs) = vs
 -}
 
 data Valor = ValorInt {
-               i :: Integer         
+               i :: Integer
              }
-            | 
+            |
              ValorFun {
                f :: Function
-             }   
-            | 
+             }
+            |
              ValorStr {
                s :: String
-             } 
+             }
             | ValorBool {
                b :: Bool
              }
@@ -106,7 +109,7 @@ instance Show Valor where
   show (ValorBool b) = show b
   show (ValorInt i) = show i
   show (ValorStr s) = s
-  show (ValorFun f) = show f 
+  show (ValorFun f) = show f
 --(\(Ident x) -> x) nf
 
 type RContext = [(Ident,Valor)]
