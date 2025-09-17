@@ -85,21 +85,16 @@ tinf tc x  =  case x of
                                   case r of 
                                       OK _ -> let r2 = tinf tc expT in
                                                 case r2 of
-                                                  OK _ -> let r3 = tinf tc expE in
-                                                            case r3 of
-                                                              r2 -> r3
-                                                              OK _ -> Erro "Expressões de Then e Else não têm o mesmo tipo"
-                                                              Erro msg -> Erro msg
+                                                  OK tp2 -> let r3 = tinf tc expE in
+                                                              case r3 of
+                                                                OK tp3 -> if (tp2 == tp3)
+                                                                            then OK tp3
+                                                                            else Erro "Erro"
+                                                                Erro msg -> Erro msg
+                                                                -- r2 -> r3
+                                                                -- OK _ -> Erro "Expressões de Then e Else não têm o mesmo tipo"
+                                                                -- Erro msg -> Erro msg
                                                   Erro msg -> Erro msg
-                                      {-OK _ -> let r2 = tinf tc expT in
-                                                case r2 of
-                                                  OK _ -> let r3 = tinf tc expE in
-                                                            case r3 of
-                                                              OK _ -> if (r2 == r3)
-                                                                        then r3
-                                                                        else Erro msg
-                                                              Erro msg -> Erro msg
-                                                  Erro msg -> Erro msg-}
                                       Erro msg -> Erro msg
 {- TODO: sobre "ECall" abaixo, a lógica permanece a mesma em relação a LI2Tipada ? Por que? -}  
 -- A lógica entre ECall da LF2 e da LI2 é bem parecida, as diferenças que surgem se devem apenas à mudança da linguagem em relação a parar de usar comandos e manter apenas expressões, o que causa alguns comportamentos diferentes nas funções de lookup.

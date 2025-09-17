@@ -71,7 +71,7 @@ eval context x = case x of
     aplicadas ao argumento "funDef"  @dica: não altere o resto, mas saiba explicar o funcionamento -}
     ECall id lexp   -> eval (paramBindings ++ contextFunctions) (getExp funDef) -- 1o undefined é a expressão da função definida como funDef na lnha abaixo
                           where (ValorFun funDef) = lookup context id
-                                parameters = getParamIdents funDef -- 2o undefined é os identificadores dos parâmetros da funDef
+                                parameters = getParams funDef -- 2o undefined é os identificadores dos parâmetros da funDef
                                 paramBindings = zip parameters (map (eval context) lexp)
                                 contextFunctions = filter (\(i,v) -> case v of
                                                                          ValorFun _ -> True
@@ -90,6 +90,8 @@ i (ValorInt vi) = vi
 s (ValorStr vs) = vs
 -}
 
+{-
+-- VERSÃO ORIGINAL
 data Valor = ValorInt {
                i :: Integer
              }
@@ -129,4 +131,45 @@ update ((i,v):cs) s nv
 updatecF :: RContext -> [Function] -> RContext
 updatecF c [] = c
 updatecF c (f:fs) = updatecF (update c (getName f) (ValorFun f)) fs
+
+-}
+data Valor = ValorInt {
+               i :: Integer
+             }
+            |
+             ValorFun {
+               f :: Function
+             }
+            |
+             ValorStr {
+               s :: String
+             }
+            | ValorBool {
+               b :: Bool
+             }
+
+instance Show Valor where
+  show (ValorBool b) = show b
+  show (ValorInt i) = show i
+  show (ValorStr s) = s
+  show (ValorFun f) = show f
+--(\(Ident x) -> x) nf
+
+type RContext = [(Decl,Valor)]
+
+lookup :: RContext -> Ident -> Valor
+lookup ((i@(Dec iTp iId),v):cs) s
+   | iId == s = v
+   | otherwise = lookup cs s
+
+update :: RContext -> Decl -> Valor -> RContext
+update [] s v = [(s,v)]
+update ((i@(Dec iTp iId),v):cs) s@(Dec sTp sId) nv
+  | iId == sId = (s,nv):cs
+  | otherwise = (i,v) : update cs s nv
+
+
+updatecF :: RContext -> [Function] -> RContext
+updatecF c [] = c
+updatecF c (f:fs) = updatecF (update c (Dec (getType f) (getName f)) (ValorFun f)) fs
 
