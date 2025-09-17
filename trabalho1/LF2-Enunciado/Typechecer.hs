@@ -8,7 +8,9 @@ data R a = OK a | Erro String
          deriving (Eq, Ord, Show, Read)
 
 isError e = case e of
-    OK _ -> Falsemsg
+    OK _ -> False
+    Erro _ -> True
+
 type TContext = [(Ident,Type)]
 
 {-
@@ -80,7 +82,7 @@ tinf tc x  =  case x of
    "exp" deve ser inteiro (Tint), e os tipos de "expT" e "expE" devem ser iguais.
    @dica: estude a estrutura da checagem de tipo do "SIf" na LI2Tipada. 
 -}
--- Primeiro, verificamos se r é do tipo Int com a função tke; depois, usamos a função tinf recursivamente para avaliar o tipo de expT e depois o tipo de expE, e usamos pattern matching para comparar os dois tipos, retornando OK e o tipo das expressões caso sejam os mesmos, ou um erro se forem diferentes.
+-- Primeiro, verificamos se r é do tipo Int com a função tke; depois, usamos a função tinf recursivamente para avaliar o tipo de expT e depois o tipo de expE, e comparamos os dois tipos, retornando OK e o tipo das expressões caso sejam os mesmos, ou um erro se forem diferentes.
     eIf@(EIf exp expT expE) -> let r = tke tc exp Tint in 
                                   case r of 
                                       OK _ -> let r2 = tinf tc expT in
