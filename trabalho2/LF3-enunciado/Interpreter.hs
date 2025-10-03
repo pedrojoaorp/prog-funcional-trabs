@@ -1,8 +1,9 @@
 module Interpreter where
 
 import AbsLF
-import AbsLFAux  -- TODO: leia agora o conteudo desse arquivo (AbsLFAux.hs) e explique por que refatoramos assim 
+import AbsLFAux  -- TODO: leia agora o conteudo desse arquivo (AbsLFAux.hs) e explique por que refatoramos assim -- As novas funções definidas lidam com a nova expressão ELambda, que funciona de maneira parecida mas não igual a uma Function e por isso precisa de funções prórprias para resgatar suas informações
 import Prelude hiding (lookup)
+import AbsLF (Exp(EComp, EDiv))
 
 
 executeP :: Program -> Valor
@@ -42,8 +43,8 @@ eval context x = case x of
     {- TODO: em ECall abaixo, troque undefined (3 ocorrencias) pela construcao apropriada.                           
        Dica: estude o codigo, buscando entender tambem as definicoes locais -}
     ECall exp lexp ->  if (length lexp < length parameters) 
-                         then ValorFun (ELambda undefined undefined) -- TODO: que caso eh esse ?
-                         else eval (paramBindings ++ contextFunctions) exp' -- TODO: que caso eh esse ? 
+                         then ValorFun (ELambda undefined undefined) -- TODO: que caso eh esse ? -- Esse é o caso de aplicação parcial da função
+                         else eval (paramBindings ++ contextFunctions) exp' -- TODO: que caso eh esse ? -- Esse é o caso de aplicação total da função
                         where (ValorFun lambda) = eval context undefined
                               parameters = getParamsL lambda
                               paramBindings = zip parameters (map (eval context) lexp)
@@ -64,17 +65,17 @@ subst rc exp  = case exp of
     lambda@(ELambda paramsTypes exp) -> ELambda paramsTypes (subst (rc `diff` (getParamsL lambda)) exp)
     ECall exp lexp -> ECall (subst rc exp ) (map (subst rc) lexp)
     EAdd exp0 exp  -> EAdd (subst rc exp0 ) (subst rc exp )
-    -- TODO: nos casos abaixo, troque cada undefined pela construcao apropriada
-    EComp exp1 exp2 -> undefined
-    EIf expC expT expE -> undefined
-    ECon exp0 exp  -> undefined
-    ESub exp0 exp  -> undefined
-    EMul exp0 exp  -> undefined
-    EDiv exp0 exp  -> undefined
-    EOr  exp0 exp  -> undefined
-    EAnd exp0 exp  -> undefined
-    ENot exp       -> undefined
-    _ -> exp   -- TODO: quais sao esses casos e por que sao implementados assim ?                        
+    -- TODO: nos casos abaixo, troque cada undefined pela construcao apropriada -- Apenas repliquei os exemplos já dados com as funções abaixo
+    EComp exp1 exp2 -> EComp (subst rc exp1) (subst rc exp2)
+    EIf expC expT expE -> EIf (subst rc expC) (subst rc expT) (subst rc expE)
+    ECon exp0 exp  -> ECon (subst rc exp0) (subst rc exp)
+    ESub exp0 exp  -> ESub (subst rc exp0) (subst rc exp)
+    EMul exp0 exp  -> EMul (subst rc exp0) (subst rc exp)
+    EDiv exp0 exp  -> EDiv (subst rc exp0) (subst rc exp)
+    EOr  exp0 exp  -> EOr  (subst rc exp0) (subst rc exp)
+    EAnd exp0 exp  -> EAnd (subst rc exp0) (subst rc exp)
+    ENot exp       -> ENot (subst rc exp)
+    _ -> exp   -- TODO: quais sao esses casos e por que sao implementados assim ? -- Esses são os casos EInt, EStr, ETrue, e EFalse, que são valores literais e portanto não faz sentido substituir
 
 {- TODO: 
   sobre a implementacao finalizada de subst:
@@ -83,7 +84,7 @@ subst rc exp  = case exp of
   3) qual a finalidade dos casos recursivos?
   4) por que a linha 64 eh diferente dos outros casos recursivos?  
   5) numa especificacao textual intuitiva e concisa (semelhante ao comentario na linha 59),
-     qual a linha mais importante entre 62-77 ?
+     qual a linha mais importante entre 62-77 (EVar id ... // _ -> exp) ?
   6) Ha semelhanca de implementacao em relacao ao Optimizer.hs? Qual(is)?    
 -}
 
@@ -96,7 +97,7 @@ rc `diff` [] = rc
     | otherwise = (k,v) : ( kvs `diff` (id:ids))
 
 -- a função bind retorna uma expressao contendo o valor do id no RContext, ou o proprio id. 
--- TODO: por que nao usamos o lookup no lugar de bind ?
+-- TODO: por que nao usamos o lookup no lugar de bind ? -- Enquanto o lookup retorna o valor encontrado, o bind retorna uma expressão contendo o valor encontrado, e por isso cumpre melhor a funcionalidade necessária no subst
 bind :: Ident -> RContext -> Exp
 bind id [] = EVar id  -- retorna o proprio id se ele nao esta ligado em RContext
 bind id ((k,v):kvs)
@@ -117,13 +118,14 @@ data Valor = ValorInt {
              }
             | 
              ValorFun {
-               f :: Exp   --f :: Function  **NOVO TODO: Por que mudou ?
+               f :: Exp   --f :: Function  **NOVO TODO: Por que mudou ? -- Porque o ValorFun agora deve receber, além de uma função comum, um valor lambda também, e para isso estamos generalizando funções como expressões lambda, e a criação e chamada de funções normal vira uma especificação em cima disso
              }   
             | 
              ValorStr {
                s :: String
              } 
-            | ValorBool {
+            |
+             ValorBool {
                b :: Bool
              }
 
@@ -131,7 +133,7 @@ instance Show Valor where
   show (ValorBool b) = show b
   show (ValorInt i) = show i
   show (ValorStr s) = s
-  show (ValorFun f) = show f  -- TODO: por que essa linha funciona ?
+  show (ValorFun f) = show f  -- TODO: por que essa linha funciona ? -- Porque em AbsLF, todas as expressões, incluindo a ELambda, que é o conteúdo do ValorFun, derivam c.Show e portanto têm a função show definida
   
 
 lookup :: RContext -> Ident -> Valor
@@ -146,7 +148,7 @@ update ((i,v):cs) s nv
   | otherwise = (i,v) : update cs s nv
 
 
--- NOVO: TODO: explique a mudanca em updatecF
+-- NOVO: TODO: explique a mudanca em updatecF -- A mudança se deve porque ValorFun agora contém uma expressão em vez de uma função, e como updatecF recebe uma lista de funções, precisamos gerar uma expressão lambda a partir dos parâmetros e da expressão que a função da lista contém
 updatecF :: RContext -> [Function] -> RContext
 updatecF c [] = c
 updatecF c (f:fs) = updatecF (update c (getName f)    

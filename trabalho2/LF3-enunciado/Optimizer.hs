@@ -2,6 +2,7 @@ module Optimizer where
 
 import AbsLF
 import Interpreter
+import Distribution.Compat.Prelude (Floating(exp))
 
 optimizeP :: Program -> Program
 optimizeP (Prog fs) = Prog (map optimizeF fs)
@@ -64,7 +65,7 @@ optimizeE exp  = case exp of
                                                 then wrapValueExpression (eval [] optEAnd)
                                                 else optEAnd
                       -- TODO: substitua os 3 undefineds abaixo pelo retorno apropriado                                                             
-                      ECall exp lexp   -> undefined 
+                      ECall exp lexp   -> ECall (optimizeE exp) (map (\expr ->  optimizeE expr) lexp) -- Igual à LF2, mas agora em vez de id temos uma exp que também deve ser otimizada
                       ELambda params exp -> undefined
                       EComp exp1 exp2 -> undefined
                       EIf exp expT expE -> let optExp  = optimizeE exp 

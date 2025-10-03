@@ -3,6 +3,8 @@ module Typechecer where
 import AbsLF
 import Prelude hiding (lookup)
 import PrintLF
+import AbsLF (Type(TFun))
+import Data.ByteString (length)
 
 data R a = OK a | Erro String                                   
          deriving (Eq, Ord, Show, Read)
@@ -72,8 +74,8 @@ tinf tc x  =  case x of
     {- TODO: 1)completar abaixo trocando undefined pelo retorno apropriado 
              2) explicar o argumento de tinf abaixo
     -}
-    ELambda params exp -> case (tinf (parameterTypeBindings ++ tc) exp) of  
-                            OK tExp -> undefined
+    ELambda params exp -> case (tinf (parameterTypeBindings ++ tc) exp) of -- tinf neste caso irá analisar o tipo de retorno da expressão, usando o contexto de tipos já existente somado ao contexto de tipos provido dos parâmetros da função e seus respectivos tipos
+                            OK tExp -> TFun tExp (map (\(Dec tp id) -> tp) params) -- undefined aqui; ELambda tem o tipo TFun com tipo de retorno tExp e tipos dos parâmetros retirados dos parâmetros
                             Erro msg -> Erro msg
                            where parameterTypeBindings = map (\(Dec tp id) -> (id,tp)) params
 
@@ -81,12 +83,12 @@ tinf tc x  =  case x of
              2) fazer as explicacoes necessarias
     -}    
     ECall exp lexp  -> case (tinf tc exp) of  
-                        OK (TFun tR pTypes) -> if (length pTypes >= length lexp) -- TODO explicar >=
+                        OK (TFun tR pTypes) -> if (length pTypes >= length lexp) -- TODO explicar >= -- A LF3 deve conter aplicação parcial, que significa que uma função pode ser aplicada sem ter todos os argumentos necessários, retornando assim uma função que recebe os argumentos restantes 
                                                  then 
                                                    if (isThereError tksArgs /= [])
                                                     then Erro " @typechecker: tipo incompativel entre argumento e parametro"
-                                                    else if (length pTypes > length lexp)  -- TODO o que isso testa ?
-                                                          then undefined
+                                                    else if (length pTypes > length lexp)  -- TODO o que isso testa ? -- Está testando se a quantidade de argumentos recebidos é menor que a quantidade de parâmetros, visto que neste caso estará acontecendo aplicação parcial
+                                                          then OK TFun tR (drop (length lexp) pTypes) -- undefined aqui; o tipo de retorno é TFun com tipo do parâmetro de retorno tR e tipos dos parâmetros de entrada retirados dos parâmetros originais, menos os parâmetros já aplicados
                                                           else OK tR
                                                  else Erro " @typechecker: mais argumentos que parametros"
                                                where tksArgs = zipWith (tke tc) lexp pTypes
@@ -97,7 +99,7 @@ tinf tc x  =  case x of
                                                                                               Erro _ -> False)) l)
                         OK t -> Erro ("@typechecker: tipo deveria ser funcao em " ++ printTree exp++ " tipo real: " ++ show t)
                         Erro msg -> Erro msg
-    -- TODO: o que esta sendo testando abaixo ?                     
+    -- TODO: o que esta sendo testando abaixo ? -- Estamos testando se o tipo de retorno da função na exp2 é igual ao tipo do parâmetro da função na exp1, para que as duas funções sejam compatíveis de composição
     EComp exp1 exp2 -> case (tinf tc exp1, tinf tc exp2) of
                         (OK (TFun trExp1 tpsExp1) , OK (TFun trExp2 tpsExp2) )  ->
                            if ([trExp2] == tpsExp1)
