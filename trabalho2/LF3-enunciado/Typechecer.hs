@@ -3,8 +3,6 @@ module Typechecer where
 import AbsLF
 import Prelude hiding (lookup)
 import PrintLF
-import AbsLF (Type(TFun))
-import Data.ByteString (length)
 
 data R a = OK a | Erro String                                   
          deriving (Eq, Ord, Show, Read)
@@ -75,7 +73,7 @@ tinf tc x  =  case x of
              2) explicar o argumento de tinf abaixo
     -}
     ELambda params exp -> case (tinf (parameterTypeBindings ++ tc) exp) of -- tinf neste caso irá analisar o tipo de retorno da expressão, usando o contexto de tipos já existente somado ao contexto de tipos provido dos parâmetros da função e seus respectivos tipos
-                            OK tExp -> TFun tExp (map (\(Dec tp id) -> tp) params) -- undefined aqui; ELambda tem o tipo TFun com tipo de retorno tExp e tipos dos parâmetros retirados dos parâmetros
+                            OK tExp -> OK (TFun tExp (map (\(Dec tp id) -> tp) params)) -- undefined aqui; ELambda tem o tipo TFun com tipo de retorno tExp e tipos dos parâmetros retirados dos parâmetros
                             Erro msg -> Erro msg
                            where parameterTypeBindings = map (\(Dec tp id) -> (id,tp)) params
 
@@ -88,7 +86,7 @@ tinf tc x  =  case x of
                                                    if (isThereError tksArgs /= [])
                                                     then Erro " @typechecker: tipo incompativel entre argumento e parametro"
                                                     else if (length pTypes > length lexp)  -- TODO o que isso testa ? -- Está testando se a quantidade de argumentos recebidos é menor que a quantidade de parâmetros, visto que neste caso estará acontecendo aplicação parcial
-                                                          then OK TFun tR (drop (length lexp) pTypes) -- undefined aqui; o tipo de retorno é TFun com tipo do parâmetro de retorno tR e tipos dos parâmetros de entrada retirados dos parâmetros originais, menos os parâmetros já aplicados
+                                                          then OK (TFun tR (drop (length lexp) pTypes)) -- undefined aqui; o tipo de retorno é TFun com tipo do parâmetro de retorno tR e tipos dos parâmetros de entrada retirados dos parâmetros originais, menos os parâmetros já aplicados
                                                           else OK tR
                                                  else Erro " @typechecker: mais argumentos que parametros"
                                                where tksArgs = zipWith (tke tc) lexp pTypes

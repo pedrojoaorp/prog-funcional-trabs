@@ -1,0 +1,12 @@
+int double(int x) {
+  x + x
+}
+
+int add5 (int b) {
+  b + 5
+}
+
+
+int main() {
+  (<double . add5>)  (4)
+}
