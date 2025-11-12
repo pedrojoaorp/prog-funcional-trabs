@@ -1,0 +1,16 @@
+
+int main () {
+   ifOpt ( ifOpt2 (5+1) )
+}
+
+int ifOpt (int n) {
+ if (n+0)
+    then n
+    else (3-3)
+}
+
+int ifOpt2 (int n) {
+ if (0)
+    then n
+    else (3-3)
+}
