@@ -13,17 +13,6 @@ isError e = case e of
 
 type TContext = [(Ident,Type)]
 
-{-
-int main ()
-{
-  fat (5)
-}
-int fat (int n)
-{
-  if (n) then n * fat (n - 1) else 1
-}
--}
-
 test1 = Prog [Fun Tint (Ident "main") [] (ECall (Ident "fat") [EInt 5]),Fun Tint (Ident "fat") [Dec Tint (Ident "n")] (EIf (EVar (Ident "n")) (EMul (EVar (Ident "n")) (ECall (Ident "fat") [ESub (EVar (Ident "n")) (EInt 1)])) (EInt 1))]
 test2 = Prog [Fun Tint (Ident "main") [] (ECall (Ident "fat") [EAdd (EInt 5) (EInt 1)]),Fun Tint (Ident "fat") [Dec Tint (Ident "n")] (EIf (EVar (Ident "n")) (EMul (EVar (Ident "n")) (ECall (Ident "fat") [ESub (EVar (Ident "n")) (EInt 1)])) (EInt 1))]
 
@@ -33,9 +22,6 @@ typeCheckP (Prog fs) = let nCtx = updatecF [] fs in
                              OK ctx -> map (typeCheckF ctx) fs
                              Erro msg -> [Erro msg]
 
-{- TODO: na definição de "typeCheckF" abaixo,substitua "undefined" 
-         pelo argumento relevante -}               
--- Observa-se que a função tke recebe como argumentos um contexto, uma expressão, e um tipo, e retorna confirmação e o novo contexto; o undefined está no lugar da expressão. Na LI2Tipada, na typeCheckF, há um uso da função tke em que está recebendo como expressão de argumento a expressão do comando de retorno; aqui, de maneira similar, a função tke deve receber o resultado da função, que é neste caso o exp entrando como argumento do typeCheckF.
 typeCheckF ::  TContext -> Function -> R TContext    
 typeCheckF tc (Fun tR _ decls exp) = tke (parameterTypeBindings ++ functionTypes) exp tR
                                         where parameterTypeBindings = map (\(Dec tp id) -> (id,tp)) decls
@@ -78,11 +64,6 @@ tinf tc x  =  case x of
     EFalse         -> OK Tbool  
     EInt n         -> OK Tint  
     EVar id        -> lookup tc id
-{- TODO: implemente a checagem de tipo para o "EIf" abaixo:
-   "exp" deve ser inteiro (Tint), e os tipos de "expT" e "expE" devem ser iguais.
-   @dica: estude a estrutura da checagem de tipo do "SIf" na LI2Tipada. 
--}
--- Primeiro, verificamos se r é do tipo Int com a função tke; depois, usamos a função tinf recursivamente para avaliar o tipo de expT e depois o tipo de expE, e comparamos os dois tipos, retornando OK e o tipo das expressões caso sejam os mesmos, ou um erro se forem diferentes.
     eIf@(EIf exp expT expE) -> let r = tke tc exp Tint in 
                                   case r of 
                                       OK _ -> let r2 = tinf tc expT in
@@ -93,13 +74,8 @@ tinf tc x  =  case x of
                                                                             then OK tp3
                                                                             else Erro "Erro"
                                                                 Erro msg -> Erro msg
-                                                                -- r2 -> r3
-                                                                -- OK _ -> Erro "Expressões de Then e Else não têm o mesmo tipo"
-                                                                -- Erro msg -> Erro msg
                                                   Erro msg -> Erro msg
                                       Erro msg -> Erro msg
-{- TODO: sobre "ECall" abaixo, a lógica permanece a mesma em relação a LI2Tipada ? Por que? -}  
--- A lógica entre ECall da LF2 e da LI2 é bem parecida, as diferenças que surgem se devem apenas à mudança da linguagem em relação a parar de usar comandos e manter apenas expressões, o que causa alguns comportamentos diferentes nas funções de lookup.
     ECall id lexp   -> let r = lookup tc id in 
                         case r of 
                            OK (TFun tR pTypes) -> if (length pTypes == length lexp)
